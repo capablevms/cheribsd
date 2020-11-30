@@ -50,6 +50,10 @@ NM?=		nm
 OBJCOPY?=	objcopy
 SIZE?=		size
 
+.if ${MACHINE_ABI:Mpurecap}
+NO_MODULES=yes
+.endif
+
 .if defined(DEBUG)
 CTFFLAGS+=	-g
 .endif
