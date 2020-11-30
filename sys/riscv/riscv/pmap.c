@@ -224,8 +224,8 @@ static struct pmaplist allpmaps = LIST_HEAD_INITIALIZER();
 
 struct pmap kernel_pmap_store;
 
-vm_ptr_t virtual_avail;		/* VA of first avail page (after kernel bss) */
-vm_ptr_t virtual_end;		/* VA of last avail page (end of kernel AS) */
+vm_pointer_t virtual_avail;		/* VA of first avail page (after kernel bss) */
+vm_pointer_t virtual_end;		/* VA of last avail page (end of kernel AS) */
 vm_offset_t kernel_vm_end = 0;
 
 vm_paddr_t dmap_phys_base;	/* The start of the dmap region */
@@ -466,7 +466,7 @@ pmap_distribute_l1(struct pmap *pmap, vm_pindex_t l1index,
 }
 
 static pt_entry_t *
-pmap_early_page_idx(vm_ptr_t l1pt, vm_offset_t va, u_int *l1_slot,
+pmap_early_page_idx(vm_pointer_t l1pt, vm_offset_t va, u_int *l1_slot,
     u_int *l2_slot)
 {
 	pt_entry_t *l2;
@@ -487,7 +487,7 @@ pmap_early_page_idx(vm_ptr_t l1pt, vm_offset_t va, u_int *l1_slot,
 }
 
 static vm_paddr_t
-pmap_early_vtophys(vm_ptr_t l1pt, vm_offset_t va)
+pmap_early_vtophys(vm_pointer_t l1pt, vm_offset_t va)
 {
 	u_int l1_slot, l2_slot;
 	pt_entry_t *l2;
@@ -507,7 +507,7 @@ pmap_early_vtophys(vm_ptr_t l1pt, vm_offset_t va)
 }
 
 static void
-pmap_bootstrap_dmap(vm_ptr_t kern_l1, vm_paddr_t min_pa, vm_paddr_t max_pa)
+pmap_bootstrap_dmap(vm_pointer_t kern_l1, vm_paddr_t min_pa, vm_paddr_t max_pa)
 {
 	vm_offset_t va;
 	vm_paddr_t pa;
@@ -551,10 +551,10 @@ pmap_bootstrap_dmap(vm_ptr_t kern_l1, vm_paddr_t min_pa, vm_paddr_t max_pa)
 	sfence_vma();
 }
 
-static vm_ptr_t
-pmap_bootstrap_l3(vm_ptr_t l1pt, vm_offset_t va, vm_ptr_t l3_start)
+static vm_pointer_t
+pmap_bootstrap_l3(vm_pointer_t l1pt, vm_offset_t va, vm_pointer_t l3_start)
 {
-	vm_ptr_t l3pt;
+	vm_pointer_t l3pt;
 	pt_entry_t entry;
 	pd_entry_t *l2;
 	vm_paddr_t pa;
@@ -589,11 +589,11 @@ pmap_bootstrap_l3(vm_ptr_t l1pt, vm_offset_t va, vm_ptr_t l3_start)
  *	Bootstrap the system enough to run with virtual memory.
  */
 void
-pmap_bootstrap(vm_ptr_t l1pt, vm_paddr_t kernstart, vm_size_t kernlen)
+pmap_bootstrap(vm_pointer_t l1pt, vm_paddr_t kernstart, vm_size_t kernlen)
 {
 	u_int l1_slot, l2_slot;
-	vm_ptr_t freemempos;
-	vm_ptr_t dpcpu, msgbufpv;
+	vm_pointer_t freemempos;
+	vm_pointer_t dpcpu, msgbufpv;
 	vm_paddr_t max_pa, min_pa, pa;
 	pt_entry_t *l2p;
 	int i;
@@ -646,7 +646,7 @@ pmap_bootstrap(vm_ptr_t l1pt, vm_paddr_t kernstart, vm_size_t kernlen)
 
 	freemempos = roundup2(KERNBASE + kernlen, PAGE_SIZE);
 #ifdef __CHERI_PURE_CAPABILITY__
-	freemempos = (vm_ptr_t)cheri_setaddress(cheri_kall_capability,
+	freemempos = (vm_pointer_t)cheri_setaddress(cheri_kall_capability,
 	    freemempos);
 #endif
 
@@ -667,7 +667,7 @@ pmap_bootstrap(vm_ptr_t l1pt, vm_paddr_t kernstart, vm_size_t kernlen)
 
 #ifdef __CHERI_PURE_CAPABILITY__
 #define alloc_pages(var, np)						\
-	(var) = (vm_ptr_t)cheri_setbounds((void *)freemempos,		\
+	(var) = (vm_pointer_t)cheri_setbounds((void *)freemempos,		\
 	    (np * PAGE_SIZE));						\
 	freemempos += cheri_getlen((void *)(var));			\
 	memset((char *)(var), 0, ((np) * PAGE_SIZE));
@@ -689,9 +689,9 @@ pmap_bootstrap(vm_ptr_t l1pt, vm_paddr_t kernstart, vm_size_t kernlen)
 	virtual_avail = roundup2(freemempos, L2_SIZE);
 	virtual_end = VM_MAX_KERNEL_ADDRESS - L2_SIZE;
 #ifdef __CHERI_PURE_CAPABILITY__
-	virtual_avail = (vm_ptr_t)cheri_setbounds((void *)virtual_avail,
+	virtual_avail = (vm_pointer_t)cheri_setbounds((void *)virtual_avail,
 	    (vaddr_t)virtual_end - (vaddr_t)virtual_avail);
-	virtual_end = (vm_ptr_t)cheri_setaddress((void *)virtual_avail,
+	virtual_end = (vm_pointer_t)cheri_setaddress((void *)virtual_avail,
 	    virtual_end);
 #endif
 	kernel_vm_end = virtual_avail;
@@ -1033,8 +1033,8 @@ pmap_kremove_device(vm_offset_t sva, vm_size_t size)
  *	update '*virt' with the first usable address after the mapped
  *	region.
  */
-vm_ptr_t
-pmap_map(vm_ptr_t *virt, vm_paddr_t start, vm_paddr_t end, int prot)
+vm_pointer_t
+pmap_map(vm_pointer_t *virt, vm_paddr_t start, vm_paddr_t end, int prot)
 {
 
 	return PHYS_TO_DMAP(start);
@@ -3421,10 +3421,10 @@ pmap_copy(pmap_t dst_pmap, pmap_t src_pmap, vm_offset_t dst_addr, vm_size_t len,
 void
 pmap_zero_page(vm_page_t m)
 {
-	vm_ptr_t va = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(m));
+	vm_pointer_t va = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(m));
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	va = (vm_ptr_t)cheri_setboundsexact((void *)va, PAGE_SIZE);
+	va = (vm_pointer_t)cheri_setboundsexact((void *)va, PAGE_SIZE);
 #endif
 	pagezero((void *)va);
 }
@@ -3438,10 +3438,10 @@ pmap_zero_page(vm_page_t m)
 void
 pmap_zero_page_area(vm_page_t m, int off, int size)
 {
-	vm_ptr_t va = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(m));
+	vm_pointer_t va = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(m));
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	va = (vm_ptr_t)cheri_setboundsexact((void *)va, PAGE_SIZE);
+	va = (vm_pointer_t)cheri_setboundsexact((void *)va, PAGE_SIZE);
 #endif
 	if (off == 0 && size == PAGE_SIZE)
 		pagezero((void *)va);
@@ -3465,12 +3465,12 @@ pmap_zero_page_area(vm_page_t m, int off, int size)
 void
 pmap_copy_page(vm_page_t msrc, vm_page_t mdst)
 {
-	vm_ptr_t src = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(msrc));
-	vm_ptr_t dst = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(mdst));
+	vm_pointer_t src = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(msrc));
+	vm_pointer_t dst = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(mdst));
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	src = (vm_ptr_t)cheri_setboundsexact((void *)src, PAGE_SIZE);
-	dst = (vm_ptr_t)cheri_setboundsexact((void *)dst, PAGE_SIZE);
+	src = (vm_pointer_t)cheri_setboundsexact((void *)src, PAGE_SIZE);
+	dst = (vm_pointer_t)cheri_setboundsexact((void *)dst, PAGE_SIZE);
 #endif
 #if __has_feature(capabilities)
 	pagecopy_cleartags((void *)src, (void *)dst);
@@ -3479,13 +3479,13 @@ pmap_copy_page(vm_page_t msrc, vm_page_t mdst)
 void
 pmap_copy_page_tags(vm_page_t msrc, vm_page_t mdst)
 {
-	vm_ptr_t src = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(msrc));
-	vm_ptr_t dst = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(mdst));
+	vm_pointer_t src = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(msrc));
+	vm_pointer_t dst = PHYS_TO_DMAP(VM_PAGE_TO_PHYS(mdst));
 
 #endif
 #ifdef __CHERI_PURE_CAPABILITY__
-	src = (vm_ptr_t)cheri_setboundsexact((void *)src, PAGE_SIZE);
-	dst = (vm_ptr_t)cheri_setboundsexact((void *)dst, PAGE_SIZE);
+	src = (vm_pointer_t)cheri_setboundsexact((void *)src, PAGE_SIZE);
+	dst = (vm_pointer_t)cheri_setboundsexact((void *)dst, PAGE_SIZE);
 #endif
 	pagecopy((void *)src, (void *)dst);
 }
@@ -3528,7 +3528,7 @@ pmap_copy_pages(vm_page_t ma[], vm_offset_t a_offset, vm_page_t mb[],
 	}
 }
 
-vm_ptr_t
+vm_pointer_t
 pmap_quick_enter_page(vm_page_t m)
 {
 
@@ -4319,7 +4319,7 @@ pmap_mapbios(vm_paddr_t pa, vm_size_t size)
 }
 
 void
-pmap_unmapbios(vm_ptr_t pa, vm_size_t size)
+pmap_unmapbios(vm_pointer_t pa, vm_size_t size)
 {
 }
 
@@ -4499,7 +4499,7 @@ pmap_align_superpage(vm_object_t object, vm_ooffset_t offset,
  *
  */
 boolean_t
-pmap_map_io_transient(vm_page_t page[], vm_ptr_t vaddr[], int count,
+pmap_map_io_transient(vm_page_t page[], vm_pointer_t vaddr[], int count,
     boolean_t can_fault)
 {
 	vm_paddr_t paddr;
@@ -4521,7 +4521,7 @@ pmap_map_io_transient(vm_page_t page[], vm_ptr_t vaddr[], int count,
 		} else {
 			vaddr[i] = PHYS_TO_DMAP(paddr);
 #ifdef __CHERI_PURE_CAPABILITY__
-			vaddr[i] = (vm_ptr_t)cheri_setboundsexact(
+			vaddr[i] = (vm_pointer_t)cheri_setboundsexact(
 			    (void *)vaddr[i], PAGE_SIZE);
 #endif
 		}
@@ -4545,7 +4545,7 @@ pmap_map_io_transient(vm_page_t page[], vm_ptr_t vaddr[], int count,
 }
 
 void
-pmap_unmap_io_transient(vm_page_t page[], vm_ptr_t vaddr[], int count,
+pmap_unmap_io_transient(vm_page_t page[], vm_pointer_t vaddr[], int count,
     boolean_t can_fault)
 {
 	vm_paddr_t paddr;

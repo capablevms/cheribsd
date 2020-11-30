@@ -320,11 +320,11 @@ SYSCTL_PROC(_vm, OID_AUTO, kstack_cache_size,
 /*
  * Create the kernel stack (including pcb for i386) for a new thread.
  */
-static vm_ptr_t
+static vm_pointer_t
 vm_thread_stack_create(struct domainset *ds, int pages)
 {
 	vm_page_t ma[KSTACK_MAX_PAGES];
-	vm_ptr_t ks;
+	vm_pointer_t ks;
 	int i;
 
 	/*
@@ -365,7 +365,7 @@ vm_thread_stack_create(struct domainset *ds, int pages)
 }
 
 static void
-vm_thread_stack_dispose(vm_ptr_t ks, int pages)
+vm_thread_stack_dispose(vm_pointer_t ks, int pages)
 {
 	vm_page_t m;
 	vm_pindex_t pindex;
@@ -394,7 +394,7 @@ vm_thread_stack_dispose(vm_ptr_t ks, int pages)
 int
 vm_thread_new(struct thread *td, int pages)
 {
-	vm_ptr_t ks;
+	vm_pointer_t ks;
 
 	/* Bounds check */
 	if (pages <= 1)
@@ -404,7 +404,7 @@ vm_thread_new(struct thread *td, int pages)
 
 	ks = 0;
 	if (pages == kstack_pages && kstack_cache != NULL)
-		ks = (vm_ptr_t)uma_zalloc(kstack_cache, M_NOWAIT);
+		ks = (vm_pointer_t)uma_zalloc(kstack_cache, M_NOWAIT);
 
 	/*
 	 * Ensure that kstack objects can draw pages from any memory
@@ -427,7 +427,7 @@ vm_thread_new(struct thread *td, int pages)
 void
 vm_thread_dispose(struct thread *td)
 {
-	vm_ptr_t ks;
+	vm_pointer_t ks;
 	int pages;
 
 	pages = td->td_kstack_pages;
@@ -524,11 +524,11 @@ kstack_import(void *arg, void **store, int cnt, int domain, int flags)
 static void
 kstack_release(void *arg, void **store, int cnt)
 {
-	vm_ptr_t ks;
+	vm_pointer_t ks;
 	int i;
 
 	for (i = 0; i < cnt; i++) {
-		ks = (vm_ptr_t)store[i];
+		ks = (vm_pointer_t)store[i];
 		vm_thread_stack_dispose(ks, kstack_pages);
 	}
 }
